@@ -58,7 +58,7 @@ npm run dev
 
 ---
 
-## 🎯 How It Works (Intern Interview Summary)
+## 🎯 How It Works (Summary)
 
 1. **Room Creation:** The first user to join a room becomes the **`Host`**. Anyone joining after receives the **`Participant`** role.
 2. **Playback Synchronization:** When the Host or Moderator presses Play, Pause, or Seeks, an event is sent to the backend. The backend updates the room state and broadcasts it to everyone.
