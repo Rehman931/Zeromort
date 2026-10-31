@@ -1,34 +1,43 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 export function VideoPlayer({ roomState, isHostOrMod, onPlay, onPause }) {
   const playerRef = useRef(null);
   const isSyncing = useRef(false);
+  const [isMuted, setIsMuted] = useState(true);
 
-  // 1. Load YouTube IFrame API
+  // 1. Load YouTube IFrame API and Initialize Player
   useEffect(() => {
-    // If the YouTube script isn't loaded yet, add it to <head>
+    // If the YouTube script isn't loaded yet, add it
     if (!window.YT) {
       const tag = document.createElement('script');
       tag.src = 'https://www.youtube.com/iframe_api';
       document.body.appendChild(tag);
     }
 
-    // Function to create player once YouTube API is ready
     const initPlayer = () => {
-      if (playerRef.current) return;
+      if (playerRef.current || !document.getElementById('youtube-player')) return;
 
       playerRef.current = new window.YT.Player('youtube-player', {
         videoId: roomState.videoId || 'aqz-KE-bpKQ',
         playerVars: {
           autoplay: 1,
           controls: isHostOrMod ? 1 : 0, // Disable native player controls for participants
+          modestbranding: 1,
+          rel: 0,
         },
         events: {
           onReady: (event) => {
-            // Mute by default so browser allows autoplay
-            event.target.mute();
+            const player = event.target;
+            player.mute(); // Mute initially so browser autoplay policy allows playing
+            setIsMuted(true);
+
+            // Seek to current room timestamp if room has already started
+            if (roomState.currentTime > 0) {
+              player.seekTo(roomState.currentTime, true);
+            }
+
             if (roomState.isPlaying) {
-              event.target.playVideo();
+              player.playVideo();
             }
           },
           onStateChange: handleStateChange
@@ -36,16 +45,31 @@ export function VideoPlayer({ roomState, isHostOrMod, onPlay, onPause }) {
       });
     };
 
+    // Check if YouTube API is ready or wait for it
+    let timer = null;
     if (window.YT && window.YT.Player) {
       initPlayer();
     } else {
-      window.onYouTubeIframeAPIReady = initPlayer;
+      timer = setInterval(() => {
+        if (window.YT && window.YT.Player) {
+          clearInterval(timer);
+          initPlayer();
+        }
+      }, 100);
     }
+
+    return () => {
+      if (timer) clearInterval(timer);
+      if (playerRef.current && playerRef.current.destroy) {
+        playerRef.current.destroy();
+        playerRef.current = null;
+      }
+    };
   }, []);
 
-  // 2. Handle user clicking play/pause directly inside YouTube video
+  // 2. Handle user clicking play/pause directly inside the YouTube video
   const handleStateChange = (event) => {
-    // If this change was caused by a socket update, ignore it (prevents infinite loop)
+    // If this change was caused by an incoming socket update, ignore it (prevents infinite loop)
     if (isSyncing.current) return;
 
     const player = event.target;
@@ -107,9 +131,29 @@ export function VideoPlayer({ roomState, isHostOrMod, onPlay, onPause }) {
     }
   }, [roomState]);
 
+  // Unmute helper for browser autoplay audio policy
+  const handleUnmute = () => {
+    if (playerRef.current && playerRef.current.unMute) {
+      playerRef.current.unMute();
+      playerRef.current.setVolume(100);
+      setIsMuted(false);
+    }
+  };
+
   return (
     <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden shadow-lg border border-slate-800">
       <div id="youtube-player" className="w-full h-full" />
+
+      {/* Browser Autoplay Audio Unlock Button */}
+      {isMuted && (
+        <button
+          onClick={handleUnmute}
+          className="absolute top-3 right-3 bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-3.5 py-1.5 rounded-full font-medium shadow-xl z-20 transition active:scale-95 cursor-pointer flex items-center gap-1.5 animate-pulse"
+        >
+          <span>🔊</span>
+          <span>Click to Unmute Audio</span>
+        </button>
+      )}
     </div>
   );
 }

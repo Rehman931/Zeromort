@@ -1,6 +1,15 @@
 # YouTube Watch Party (ZeroParty)
 
-A clean, beginner-friendly real-time YouTube Watch Party application built for an **Intern Assignment**.
+A clean, real-time YouTube Watch Party system built for an **Intern Assignment**.
+
+---
+
+## 🌐 Live Production Deployments
+
+* **Frontend (Vercel):** [https://zeromort.vercel.app/](https://zeromort.vercel.app/)
+* **Backend (Render):** [https://zeromort.onrender.com/](https://zeromort.onrender.com/)
+
+> **Note on Render Free Tier:** Render spins down free backend web services after 15 minutes of inactivity. When you open the frontend, the first connection may take ~30 seconds for the backend to wake up.
 
 ---
 
@@ -15,20 +24,21 @@ A clean, beginner-friendly real-time YouTube Watch Party application built for a
 
 ```text
 ZeroMort/
-├── zeroback/                  # Backend
+├── zeroback/                  # Backend deployed on Render
 │   ├── server.js              # Express app + Socket.IO handlers + In-memory rooms
 │   ├── models/
 │   │   └── Room.js            # Simple Mongoose Schema for MongoDB Atlas
 │   ├── .env                   # PORT & MONGODB_URI
 │   └── package.json
 │
-└── ZeroFront/                 # Frontend
+└── ZeroFront/                 # Frontend deployed on Vercel
+    ├── vercel.json            # SPA routing rewrites for Vercel
     ├── src/
-    │   ├── socket.js          # Shared Socket.IO connection
+    │   ├── socket.js          # Socket.IO connection (points to Render in prod)
     │   ├── App.jsx            # Main app container & room state
     │   └── components/
-    │       ├── Lobby.jsx           # Simple Join / Create room form
-    │       ├── VideoPlayer.jsx     # YouTube IFrame player with sync
+    │       ├── Lobby.jsx           # Join / Create room form with URL code auto-fill
+    │       ├── VideoPlayer.jsx     # YouTube IFrame player with echo-cancellation
     │       ├── VideoControls.jsx   # Play, Pause, Seek, and Change Video
     │       ├── ParticipantList.jsx # Member list + Host promote/kick actions
     │       └── ChatBox.jsx         # Live text chat
